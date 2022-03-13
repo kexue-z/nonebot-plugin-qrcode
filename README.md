@@ -22,7 +22,9 @@ apt install -y libzbar0
 
 ### centos
 
-~~自己找或者 pr 文档~~
+```
+dnf install -y zbar/yum install -zbar
+```
 
 # 使用
 

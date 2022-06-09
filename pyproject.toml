@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-qrcode"
-version = "0.0.1"
+version = "0.0.5"
 description = "qq聊天二维码插件"
 authors = ["kexue <x@kexue.io.com>"]
 license = "MIT"

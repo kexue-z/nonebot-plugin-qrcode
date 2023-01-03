@@ -10,7 +10,7 @@ from nonebot.adapters.onebot.v11 import (
     MessageEvent,
     PrivateMessageEvent,
 )
-from nonebot.params import CommandArg, ShellCommandArgv, State
+from nonebot.params import CommandArg, ShellCommandArgv
 from nonebot.rule import ArgumentParser, ParserExit
 from nonebot.typing import T_State
 from PIL import Image
@@ -20,8 +20,7 @@ from .data_source import generate_qrcode
 
 qr_map: Dict[str, str] = {}
 
-
-async def check_qrcode(event: MessageEvent, state: T_State = State()) -> bool:
+async def check_qrcode(event: MessageEvent, state: T_State) -> bool:
     if isinstance(event, MessageEvent):
         for msg in event.message:
             if msg.type == "image":
@@ -35,7 +34,7 @@ notice_qrcode = on_message(check_qrcode, block=False, priority=90)
 
 
 @notice_qrcode.handle()
-async def handle_pic(event: MessageEvent, state: T_State = State()):
+async def handle_pic(event: MessageEvent, state: T_State):
     if isinstance(event, GroupMessageEvent):
         try:
             group_id: str = str(event.group_id)
@@ -81,7 +80,7 @@ qrcode = on_command("qrcode", aliases={"qr", "二维码"})
 
 
 @qrcode.handle()
-async def handle_first_receive(arg: Message = CommandArg(), state: T_State = State()):
+async def handle_first_receive(state: T_State, arg: Message = CommandArg()):
     msg = arg
     if msg:
         state["qr_img"] = msg
@@ -89,7 +88,7 @@ async def handle_first_receive(arg: Message = CommandArg(), state: T_State = Sta
 
 
 @qrcode.got("qr_img", prompt="图呢")
-async def get_qr_img(state: T_State = State()):
+async def get_qr_img(state: T_State):
     msg: Message = state["qr_img"]
     # try:
     for msg_sag in msg:

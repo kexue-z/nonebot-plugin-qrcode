@@ -355,8 +355,6 @@ async def handle_pic(
 #             await qrcode.finish("这啥？指令已取消")
 
 
-# TODO 生码部分
-
 generateqr = on_alconna(
     command=Alconna(
         "gqr",

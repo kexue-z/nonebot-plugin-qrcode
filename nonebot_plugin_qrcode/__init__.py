@@ -1,7 +1,5 @@
-from io import BytesIO
-from typing import List, cast, TypeVar, Callable  # , Optional, Dict, Any
+from typing import List, cast, Optional, Dict, Any
 
-import aiohttp
 import nonebot
 from nonebot.adapters.onebot.v11 import (
     # GroupMessageEvent,
@@ -15,9 +13,10 @@ from nonebot.adapters.onebot.v11 import (
 
 from nonebot.matcher import Matcher
 
-# from nonebot.params import CommandArg, ShellCommandArgv
-# from nonebot.rule import ArgumentParser
-# from nonebot.exception import ParserExit
+from nonebot.params import CommandArg, ShellCommandArgv
+from nonebot.rule import ArgumentParser
+from nonebot.exception import ParserExit
+
 # from nonebot.typing import T_State
 # from nonebot.log import logger
 
@@ -25,15 +24,29 @@ from nonebot.matcher import Matcher
 nonebot.require("nonebot_plugin_waiter")
 from nonebot_plugin_waiter import waiter
 
+nonebot.require("nonebot_plugin_alconna")
+
+from nonebot_plugin_alconna.util import annotation
+from nonebot_plugin_alconna import (
+    AlconnaMatcher,
+    on_alconna,
+    Alconna,
+    Option,
+    Args,
+    MultiVar,
+    Arparma,
+    store_true,
+    Field,
+    Image as Alconna_Image,
+    UniMessage,
+)
 
 from PIL import Image
-from pyzbar.pyzbar import decode
 
-# 还是坑，先别导
-# from .data_source import generate_qrcode
+from .data_source import generate_qrcode, pic_deal_and_finish, get_url
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # # 说实话，我觉得没啥必要了，这个
 # qr_map: Dict[str, str] = {}
@@ -103,9 +116,12 @@ command_heads = {
     "qrcode",
     "qr_code",
     "qr",
+    "scanqr",
     "二维码",
     "扫码",
     "扫二维码",
+    "识别你码",
+    "识别此码",
 }
 """
 命令头
@@ -137,21 +153,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
 
+
 # 授权内容开始
-
-TCallable = TypeVar("TCallable", bound=Callable)
-
-
-def annotation(**types):
-    def wrapper(func: TCallable) -> TCallable:
-        func.__annotations__ = types
-        return func
-
-    return wrapper
-
-
 async def ask_for_prompt(
-    matcher: type[Matcher], message: str | Message, timeout: float = 120
+    matcher: type[Matcher | AlconnaMatcher],
+    message: str | Message,
+    timeout: float = 120,
 ):
     """等待用户输入并返回结果
 
@@ -175,36 +182,6 @@ async def ask_for_prompt(
 
 
 # 授权内容结束
-
-
-async def get_url(url: str) -> BytesIO:
-    """
-    异步下载图片，以字节流返回
-    """
-    async with aiohttp.ClientSession() as client:
-        res = await client.get(url=url, timeout=10)
-        return BytesIO(await res.read())
-
-
-async def pic_deal_and_finish(matcher: type[Matcher], images: List[Image.Image | str]):
-    """
-    集中处理你码
-    """
-    results: List[str] = []
-
-    for img in images:
-        if isinstance(img, str):
-            results.append(img)
-        else:
-            if data := decode(img):
-                results.append("\n".join([str(piece[0].decode()) for piece in data]))
-                # for piece in data:
-                #     await qrcode.send()
-                #     await sleep(3)
-            else:
-                results.append("你图没码")
-
-    await matcher.finish("\n\n".join(results))
 
 
 async def check_for_scan(
@@ -249,6 +226,7 @@ async def handle_pic(
     if event.reply:
         for msg_sag in event.reply.message:
             if msg_sag.type == "image":
+                # print("============", msg_sag.data.get("url"))
                 images.append(Image.open(await get_url(msg_sag.data["url"])))
             # else:
             #     images.append("这啥？")
@@ -379,25 +357,160 @@ async def handle_pic(
 
 # TODO 生码部分
 
-# parser = ArgumentParser("gqr", description="生成二维码")
-# parser.add_argument("-m", "--mask", help="添加图像遮罩", action="store_true")
-# parser.add_argument("-e", "--embeded", help="添加中间logo", action="store_true")
+generateqr = on_alconna(
+    command=Alconna(
+        "gqr",
+        Args[
+            "data",
+            MultiVar(
+                Any  # type:ignore  这里类型检查给我报 MultiVar 的 Any 的错，但能运行，先留着
+            ),
+            None,
+            # Field(completion=lambda: "请给出码的内容"),
+        ],
+        Option(
+            name="-m|--mask",
+            args=Args[
+                "mask_image?",
+                MultiVar(Alconna_Image),
+                (),
+            ],
+            default=False,
+            help_text="添加图像色彩遮罩",
+            action=store_true,
+        ),
+        Option(
+            name="-e|--embeded",
+            args=Args[
+                "embeded_image?",
+                MultiVar(Alconna_Image),
+                (),
+            ],
+            default=False,
+            help_text="添加中心嵌入图",
+            action=store_true,
+        ),
+        # Args[
+        #     "addition", MultiVar(Any), ()
+        # ],
+    ),
+    aliases={"生成二维码", "二维码生成", "gqrcode", "generate-qrcode", "生码"},
+    priority=10,
+)
 
-# gqr = on_shell_command(
+
+# parser = ArgumentParser("gqr", description="生成二维码")
+# parser.add_argument("data", help="二维码数据", action="store")
+# parser.add_argument("-m", "--mask", help="添加图像色彩遮罩", action="store")
+# parser.add_argument("-e", "--embeded", help="添加中心嵌入图", action="store")
+
+
+# gqr = nonebot.on_shell_command(
 #     "gqr",
 #     parser=parser,
-#     aliases={"生成二维码", "二维码生成", "gqrcode"},
+#     aliases={"生成二维码", "二维码生成", "gqrcode", "generate-qrcode", "生码"},
 #     priority=10,
 # )
 
 
-# @gqr.handle()
-# async def handle_gqr(argv: List[str] = ShellCommandArgv()):
-#     try:
-#         args = parser.parse_args(argv)
-#     except ParserExit as e:
-#         await gqr.finish(e.message)
+@generateqr.handle()
+async def handle_gqr(
+    result: Arparma,
+    event: MessageEvent,
+):
+    # try:
+    #     args = parser.parse_args(argv)
+    # except ParserExit as e:
+    #     await gqr.finish(e.message)
 
-#     await gqr.finish(f"mask = {args.mask}, embeded = {args.embeded}")
-#     # if not arg:
-#     #     await gqr.finish(help_message)
+    # WARNING
+    # 当 nonebot-plugin-alconna 版本与 0.46.3 兼容、时（具体到哪个版本忘了）
+    # arclet_alconna==1.8.15 且 arclet_alconna_tools==0.7.6 时
+    # result 中 Option 后有参数时，其 Value 为 None
+    # 在这个版本之后，当 Option 后有参数时，其 value 为 Ellipsis
+    # 但是因为我设置了默认为 False 所以在没参数的时候必定为 False
+
+    passed_images: List[Image.Image] = [
+        Image.open(await get_url(msg_sag.data["url"]))
+        for msg_sag in [i for j in result.other_args.values() for i in j]
+        if msg_sag.type == "image"
+    ]
+
+    args_to_pass = dict(zip(result.other_args.keys(), passed_images))
+
+    if len(passed_images) > len(result.other_args.keys()):
+        await generateqr.finish(
+            UniMessage.text("你给这么多图干嘛，这哪跟哪啊！？指令已取消。")
+        )
+    elif len(passed_images) < len(result.other_args.keys()):
+        await generateqr.finish(UniMessage.text("你少图了，指令已取消。"))
+
+    # print("读入参数：", result.main_args)
+    # print("其他参数：", result.other_args)
+    # print("读入选项：", result.options)
+
+    final_data = None
+
+    getdata = lambda x: " ".join(
+        [
+            (
+                msg_sag
+                if isinstance(
+                    msg_sag,
+                    (str,),
+                )
+                else (
+                    (msg_sag.data["url"])
+                    if "url" in msg_sag.data
+                    else (
+                        msg_sag.data["text"] if "text" in msg_sag.data else str(msg_sag)
+                    )
+                )
+            )
+            for msg_sag in x
+        ]
+    )
+
+    # 挑战不可能尝试失败
+    # if event.reply:
+    #     print("这是回复数据", event.reply.message)
+
+    if "data" in result.main_args:
+        final_data = getdata(result.main_args["data"])
+
+    if not final_data:
+
+        if not (
+            data_promargs := await ask_for_prompt(
+                generateqr, "请给出要生成的二维码数据"
+            )
+        ):
+            await scan.finish("这啥啊，空数据？")
+
+        if data_promargs.has("reply"):
+            start_for = data_promargs.index("reply") + 1
+        else:
+            start_for = 0
+
+        final_data = getdata(data_promargs[start_for:])
+
+        # for msg_sag in data_promargs[start_for:]:
+        #     msg_sag.data
+
+    # print(
+    #     "输入的参数：{}".format(args_to_pass),
+    # )
+
+    try:
+        await generateqr.finish(
+            UniMessage.image(raw=generate_qrcode(final_data, **args_to_pass)) # type: ignore 这里 args 肯定是不满足类型检查的，不信去掉 type ignore 试试
+        )
+    except TypeError as e:
+        await generateqr.finish(
+            UniMessage.text(
+                "生成二维码时发生错误，你可能使用了动态图片作为遮罩。\n" + str(e)
+            )
+        )
+
+    # if not arg:
+    #     await gqr.finish(help_message)

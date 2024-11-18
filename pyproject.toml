@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "nonebot-plugin-qrcode"
-version = "0.0.6"
-description = "qq聊天二维码插件"
-authors = ["kexue <x@kexue.io.com>"]
+version = "0.1.0"
+description = "QQ聊天二维码插件"
+authors = ["kexue <x@kexue.io.com>", "Eilles <EillesWan@outlook.com>"]
 license = "MIT"
 homepage = "https://github.com/kexue-z/nonebot-plugin-qrcode"
 readme = "README.md"
@@ -10,8 +10,12 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.7.3,<4.0.0"
 pillow = ">=8"
+arclet_alconna = "^1.8.15"
+arclet_alconna_tools = "^0.7.6"
 nonebot2= "^2.0.0.beta.1"
 nonebot-adapter-onebot = "^2.0.0.beta.1"
+nonebot-plugin-waiter = ""
+nonebot-plugin-alconna = "~=0.46.3"
 pyzbar-x = "^0.2.1"
 httpx = ">=0.18.0,<1.0.0"
 qrcode = "^7.0"

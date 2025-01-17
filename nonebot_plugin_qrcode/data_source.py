@@ -101,7 +101,7 @@ async def get_url(url: str) -> BytesIO:
             图片字节流
     """
     async with AsyncClient(verify=False, timeout=10, headers=_headers) as client: # 他妈的报错啊
-        res = await client.get(url=url, timeout=10, headers=_headers)
+        res = await client.get(url=url.replace("https://", "http://"), timeout=10, headers=_headers)
         return BytesIO(res.content)
 
 

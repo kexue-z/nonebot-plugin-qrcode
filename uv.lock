@@ -346,7 +346,7 @@ dependencies = [
 requires-dist = [
     { name = "arclet-alconna", specifier = ">=1.8.32" },
     { name = "arclet-alconna-tools", specifier = ">=0.7.10" },
-    { name = "httpx", specifier = ">=0.27.2" },
+    { name = "httpx", specifier = ">=0.27.0,<0.28.0" },
     { name = "nonebot-adapter-onebot", specifier = ">=2.4.6" },
     { name = "nonebot-plugin-alconna", specifier = ">=0.53.1" },
     { name = "nonebot-plugin-waiter", specifier = ">=0.8.0" },

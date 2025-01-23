@@ -1,51 +1,49 @@
-from typing import List, cast, Any
+from typing import Any, List, cast
 
-import nonebot
+from nonebot import on_message, require
 from nonebot.adapters.onebot.v11 import (
-    # GroupMessageEvent,
+    Event,
     Message,
     MessageEvent,
-    # PrivateMessageEvent,
-    # Bot,
-    Event,
 )
-
-
 from nonebot.matcher import Matcher
+from nonebot.plugin import PluginMetadata
+from PIL import Image
 
-# from nonebot.params import CommandArg, ShellCommandArgv
-# from nonebot.rule import ArgumentParser
-# from nonebot.exception import ParserExit
+require("nonebot_plugin_waiter")
+from nonebot_plugin_waiter import waiter
 
-# from nonebot.typing import T_State
-from nonebot.log import logger
-
-
-nonebot.require("nonebot_plugin_waiter")
-from nonebot_plugin_waiter import waiter  # noqa: E402
-
-nonebot.require("nonebot_plugin_alconna")
-
-from nonebot_plugin_alconna.util import annotation  # noqa: E402
-from nonebot_plugin_alconna import (  # noqa: E402
-    AlconnaMatcher,
-    on_alconna,
+require("nonebot_plugin_alconna")
+from nonebot_plugin_alconna import (
     Alconna,
-    Option,
+    AlconnaMatcher,
     Args,
-    MultiVar,
     Arparma,
-    store_true,
-    Image as Alconna_Image,
+    MultiVar,
+    Option,
     UniMessage,
+    on_alconna,
+    store_true,
+)
+from nonebot_plugin_alconna import (
+    Image as Alconna_Image,
+)
+from nonebot_plugin_alconna.util import annotation
+
+from .data_source import generate_qrcode, get_url, pic_deal_and_finish
+
+__plugin_meta__ = PluginMetadata(
+    name="nonebot-plugin-qrcode",
+    description="二维码识别",
+    usage="qr 识别 gqr 生成",
+    type="application",
+    homepage="https://github.com/kexue-z/nonebot-plugin-qrcode",
+    config=None,
+    extra={},
 )
 
-from PIL import Image  # noqa: E402
 
-from .data_source import generate_qrcode, pic_deal_and_finish, get_url  # noqa: E402
-
-
-__version__ = "0.2.0"
+# __version__ = "0.2.0"
 
 # # 说实话，我觉得没啥必要了，这个
 # qr_map: Dict[str, str] = {}
@@ -207,7 +205,7 @@ async def check_for_scan(
         return False
 
 
-scan = nonebot.on_message(
+scan = on_message(
     rule=check_for_scan,
     block=False,
     priority=90,

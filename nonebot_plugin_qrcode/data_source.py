@@ -1,18 +1,15 @@
 from io import BytesIO
-from typing import Optional, List
+from typing import List, Optional
 
 import qrcode
 import qrcode.image.styles.moduledrawers.pil
-
-from nonebot.matcher import Matcher
-
-from PIL import Image
 from httpx import AsyncClient
+from nonebot.matcher import Matcher
+from nonebot_plugin_alconna import AlconnaMatcher
+from PIL import Image
 from pyzbar.pyzbar import decode
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.colormasks import ImageColorMask
-
-from nonebot_plugin_alconna import AlconnaMatcher
 
 _headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0"
@@ -100,8 +97,12 @@ async def get_url(url: str) -> BytesIO:
         BytesIO
             图片字节流
     """
-    async with AsyncClient(verify=False, timeout=10, headers=_headers) as client: # 他妈的报错啊
-        res = await client.get(url=url.replace("https://", "http://"), timeout=10, headers=_headers)
+    async with AsyncClient(
+        verify=False, timeout=10, headers=_headers
+    ) as client:  # 他妈的报错啊
+        res = await client.get(
+            url=url.replace("https://", "http://"), timeout=10, headers=_headers
+        )
         return BytesIO(res.content)
 
 

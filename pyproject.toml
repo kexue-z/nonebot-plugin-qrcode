@@ -25,3 +25,7 @@ dependencies = [
 
 [project.urls]
 homepage = "https://github.com/kexue-z/nonebot-plugin-qrcode"
+
+[tool.ruff]
+ignore = ["E402"]
+

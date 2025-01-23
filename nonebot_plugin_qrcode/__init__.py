@@ -1,4 +1,4 @@
-from typing import List, cast, Optional, Dict, Any
+from typing import List, cast, Any
 
 import nonebot
 from nonebot.adapters.onebot.v11 import (
@@ -13,21 +13,21 @@ from nonebot.adapters.onebot.v11 import (
 
 from nonebot.matcher import Matcher
 
-from nonebot.params import CommandArg, ShellCommandArgv
-from nonebot.rule import ArgumentParser
-from nonebot.exception import ParserExit
+# from nonebot.params import CommandArg, ShellCommandArgv
+# from nonebot.rule import ArgumentParser
+# from nonebot.exception import ParserExit
 
 # from nonebot.typing import T_State
-# from nonebot.log import logger
+from nonebot.log import logger
 
 
 nonebot.require("nonebot_plugin_waiter")
-from nonebot_plugin_waiter import waiter
+from nonebot_plugin_waiter import waiter  # noqa: E402
 
 nonebot.require("nonebot_plugin_alconna")
 
-from nonebot_plugin_alconna.util import annotation
-from nonebot_plugin_alconna import (
+from nonebot_plugin_alconna.util import annotation  # noqa: E402
+from nonebot_plugin_alconna import (  # noqa: E402
     AlconnaMatcher,
     on_alconna,
     Alconna,
@@ -36,14 +36,13 @@ from nonebot_plugin_alconna import (
     MultiVar,
     Arparma,
     store_true,
-    Field,
     Image as Alconna_Image,
     UniMessage,
 )
 
-from PIL import Image
+from PIL import Image  # noqa: E402
 
-from .data_source import generate_qrcode, pic_deal_and_finish, get_url
+from .data_source import generate_qrcode, pic_deal_and_finish, get_url  # noqa: E402
 
 
 __version__ = "0.2.0"
@@ -411,45 +410,8 @@ generateqr = on_alconna(
 # )
 
 
-@generateqr.handle()
-async def handle_gqr(
-    result: Arparma,
-    event: MessageEvent,
-):
-    # try:
-    #     args = parser.parse_args(argv)
-    # except ParserExit as e:
-    #     await gqr.finish(e.message)
-
-    # WARNING
-    # 当 nonebot-plugin-alconna 版本与 0.46.3 兼容、时（具体到哪个版本忘了）
-    # arclet_alconna==1.8.15 且 arclet_alconna_tools==0.7.6 时
-    # result 中 Option 后有参数时，其 Value 为 None
-    # 在这个版本之后，当 Option 后有参数时，其 value 为 Ellipsis
-    # 但是因为我设置了默认为 False 所以在没参数的时候必定为 False
-
-    passed_images: List[Image.Image] = [
-        Image.open(await get_url(msg_sag.data["url"]))
-        for msg_sag in [i for j in result.other_args.values() for i in j]
-        if msg_sag.type == "image"
-    ]
-
-    args_to_pass = dict(zip(result.other_args.keys(), passed_images))
-
-    if len(passed_images) > len(result.other_args.keys()):
-        await generateqr.finish(
-            UniMessage.text("你给这么多图干嘛，这哪跟哪啊！？指令已取消。")
-        )
-    elif len(passed_images) < len(result.other_args.keys()):
-        await generateqr.finish(UniMessage.text("你少图了，指令已取消。"))
-
-    # print("读入参数：", result.main_args)
-    # print("其他参数：", result.other_args)
-    # print("读入选项：", result.options)
-
-    final_data = None
-
-    getdata = lambda x: " ".join(
+def _getdata(x):
+    return " ".join(
         [
             (
                 msg_sag
@@ -469,15 +431,72 @@ async def handle_gqr(
         ]
     )
 
+
+@generateqr.handle()
+async def handle_gqr(
+    result: Arparma,
+    event: MessageEvent,
+    # bot: Bot,
+):
+    # try:
+    #     args = parser.parse_args(argv)
+    # except ParserExit as e:
+    #     await gqr.finish(e.message)
+
+    # WARNING
+    # 以下注意仅适用于 Windows 环境
+    # 当 nonebot-plugin-alconna 版本与 0.46.3 兼容、时（具体到哪个版本忘了）
+    # arclet_alconna==1.8.15 且 arclet_alconna_tools==0.7.6 时
+    # result 中 Option 后有参数时，其 Value 为 None
+    # 在这个版本之后，当 Option 后有参数时，其 value 为 Ellipsis
+    # 但是因为我设置了默认为 False 所以在没参数的时候必定为 False
+    # 在我以上提到的这个版本下，Alconna在如果没有后面的参数的情况下就不会在 args 里面有这个Key
+    # 所以！！
+    # 在 Linux 环境，或者在这个版本之后
+    # 在 Args 里面无论如何都有这个 Key，如果在没指定参数的时候就是默认参数
+    # 也就是之前的 [i for j in result.other_args.values() for i in j] 会解包到 false
+    # 于是报错
+
+    # logger.info(f"{event.user_id} 尝试生成二维码：")
+    # logger.info(result.other_args)
+    # logger.info([j for j in result.other_args.values()]) # False False
+
+    passed_images: List[Image.Image] = [
+        Image.open(await get_url(msg_sag.data["url"]))
+        for msg_sag in [
+            i for j in result.other_args.values() if j is not False for i in j
+        ]
+        if msg_sag.type == "image"
+    ]
+
+    args_to_pass = dict(
+        zip(
+            [i[0] for i in result.other_args.items() if i[1] is not False],
+            passed_images,
+        )
+    )
+
+    if len(passed_images) > len(args_to_pass):
+        await generateqr.finish(
+            UniMessage.text("你给这么多图干嘛，这哪跟哪啊！？指令已取消。")
+        )
+    elif len(passed_images) < len(args_to_pass):
+        await generateqr.finish(UniMessage.text("你少图了，指令已取消。"))
+
+    # print("读入参数：", result.main_args)
+    # print("其他参数：", result.other_args)
+    # print("读入选项：", result.options)
+
+    final_data = None
+
     # 挑战不可能尝试失败
     # if event.reply:
     #     print("这是回复数据", event.reply.message)
 
     if "data" in result.main_args:
-        final_data = getdata(result.main_args["data"])
+        final_data = _getdata(result.main_args["data"])
 
     if not final_data:
-
         if not (
             data_promargs := await ask_for_prompt(
                 generateqr, "请给出要生成的二维码数据"
@@ -490,7 +509,7 @@ async def handle_gqr(
         else:
             start_for = 0
 
-        final_data = getdata(data_promargs[start_for:])
+        final_data = _getdata(data_promargs[start_for:])
 
         # for msg_sag in data_promargs[start_for:]:
         #     msg_sag.data
@@ -501,12 +520,12 @@ async def handle_gqr(
 
     try:
         await generateqr.finish(
-            UniMessage.image(raw=generate_qrcode(final_data, **args_to_pass)) # type: ignore 这里 args 肯定是不满足类型检查的，不信去掉 type ignore 试试
+            UniMessage.image(raw=generate_qrcode(final_data, **args_to_pass))  # type: ignore 这里 args 肯定是不满足类型检查的，不信去掉 type ignore 试试
         )
     except TypeError as e:
         await generateqr.finish(
             UniMessage.text(
-                "生成二维码时发生错误，你可能使用了动态图片作为遮罩。\n" + str(e)
+                "！生成二维码时发生错误，你可能使用了动态图片作为遮罩。\n" + str(e)
             )
         )
 

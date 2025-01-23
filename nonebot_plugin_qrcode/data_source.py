@@ -14,6 +14,10 @@ from qrcode.image.styles.colormasks import ImageColorMask
 
 from nonebot_plugin_alconna import AlconnaMatcher
 
+_headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0"
+}
+
 
 # print("这是可用的 Drawers __DICT__:\n\t", qrcode.image.styles.moduledrawers.pil.__dict__)
 
@@ -96,8 +100,8 @@ async def get_url(url: str) -> BytesIO:
         BytesIO
             图片字节流
     """
-    async with AsyncClient() as client:
-        res = await client.get(url=url, timeout=10)
+    async with AsyncClient(verify=False, timeout=10, headers=_headers) as client: # 他妈的报错啊
+        res = await client.get(url=url.replace("https://", "http://"), timeout=10, headers=_headers)
         return BytesIO(res.content)
 
 
